@@ -1,4 +1,4 @@
-// +build !wasm
+// +build wasm
 
 /*
  * Nuts node
@@ -22,52 +22,16 @@
 package vcr
 
 import (
-	"encoding/json"
+	"errors"
 
 	"github.com/nuts-foundation/go-did"
-	"github.com/nuts-foundation/go-leia"
 	"github.com/nuts-foundation/nuts-node/vcr/credential"
 )
 
-const revocationCollection = "_revocation"
-
 func (c *vcr) StoreCredential(vc did.VerifiableCredential) error {
-	// verify first
-	if err := c.Verify(vc, nil); err != nil {
-		return err
-	}
-
-	return c.writeCredential(vc)
-}
-
-func (c *vcr) writeCredential(vc did.VerifiableCredential) error {
-	// validation has made sure there's exactly one!
-	vcType := credential.ExtractTypes(vc)[0]
-
-	doc, _ := json.Marshal(vc)
-
-	collection := c.store.Collection(vcType)
-
-	return collection.Add([]leia.Document{doc})
+	return errors.New("not implemented")
 }
 
 func (c *vcr) StoreRevocation(r credential.Revocation) error {
-	// verify first
-	if err := c.verifyRevocation(r); err != nil {
-		return err
-	}
-
-	return c.writeRevocation(r)
-}
-
-func (c *vcr) writeRevocation(r credential.Revocation) error {
-	collection := c.revocationIndex()
-
-	doc, _ := json.Marshal(r)
-
-	return collection.Add([]leia.Document{doc})
-}
-
-func (c *vcr) revocationIndex() leia.Collection {
-	return c.store.Collection(revocationCollection)
+	return errors.New("not implemented")
 }

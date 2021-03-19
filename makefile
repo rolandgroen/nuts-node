@@ -43,6 +43,9 @@ gen-protobuf:
 gen-docs:
 	go run ./docs
 
+wasm:
+	GOOS=js GOARCH=wasm go build -tags wasm -o out/main.wasm
+
 test:
 	go test ./...
 

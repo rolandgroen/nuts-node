@@ -35,13 +35,11 @@ type ClientConfig struct {
 	Address   string        `koanf:"address"`
 	Verbosity string        `koanf:"verbosity"`
 	Timeout   time.Duration `koanf:"timeout"`
-	configMap *koanf.Koanf
 }
 
 // NewClientConfig creates a new CLI client config with default values set.
 func NewClientConfig() *ClientConfig {
 	return &ClientConfig{
-		configMap: koanf.New(defaultDelimiter),
 		Address:   defaultAddress,
 		Verbosity: defaultLogLevel,
 		Timeout:   defaultClientTimeout,
