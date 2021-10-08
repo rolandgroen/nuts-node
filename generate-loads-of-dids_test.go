@@ -14,14 +14,14 @@ import (
 )
 
 func TestGenerateLoadsOfDIDs_MultipleNodes(t *testing.T) {
-	const numberOfDIDs = 5
+	const numberOfDIDs = 100
 	const numberOfUpdatesPerDID = 10
 	var nodeAddresses = []string{
 		"http://localhost:1001",
 		"http://localhost:1002",
-		//"http://localhost:1003",
-		//"http://localhost:1004",
-		//"http://localhost:1005",
+		"http://localhost:1003",
+		"http://localhost:1004",
+		"http://localhost:1005",
 		//"http://localhost:1006",
 		//"http://localhost:1007",
 		//"http://localhost:1008",

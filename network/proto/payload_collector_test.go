@@ -5,7 +5,11 @@ import (
 	"github.com/golang/mock/gomock"
 	"github.com/nuts-foundation/nuts-node/crypto/hash"
 	"github.com/nuts-foundation/nuts-node/network/dag"
+	"github.com/nuts-foundation/nuts-node/test/io"
 	"github.com/stretchr/testify/assert"
+	"go.etcd.io/bbolt"
+	"os"
+	"path"
 	"testing"
 )
 
@@ -13,9 +17,9 @@ func Test_missingPayloadCollector(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	ctx := context.Background()
 
-	// 2 transactions: TX0 is OK, TX1 is missing payload
-	tx0, _, _ := dag.CreateTestTransaction(0)
-	tx1, _, _ := dag.CreateTestTransaction(1, tx0.Ref())
+		// 2 transactions: TX0 is OK, TX1 is missing payload
+		tx0, _, _ := dag.CreateTestTransaction(0)
+		tx1, _, _ := dag.CreateTestTransaction(1, tx0.Ref())
 
 	graph := dag.NewMockDAG(ctrl)
 	// looks a bit odd because of mocking callbacks
@@ -32,15 +36,30 @@ func Test_missingPayloadCollector(t *testing.T) {
 	payloadStore.EXPECT().IsPresent(ctx, tx0.PayloadHash()).Return(true, nil)
 	payloadStore.EXPECT().IsPresent(ctx, tx1.PayloadHash()).Return(false, nil)
 
-	sender := NewMockmessageSender(ctrl)
-	sender.EXPECT().broadcastTransactionPayloadQuery(tx1.PayloadHash())
+		sender := NewMockmessageSender(ctrl)
+		sender.EXPECT().broadcastTransactionPayloadQuery(tx1.PayloadHash())
 
-	collector := broadcastingMissingPayloadCollector{
-		graph:        graph,
-		payloadStore: payloadStore,
-		sender:       sender,
-	}
+		collector := broadcastingMissingPayloadCollector{
+			graph:        graph,
+			payloadStore: payloadStore,
+			sender:       sender,
+		}
 
-	err := collector.findAndQueryMissingPayloads()
-	assert.NoError(t, err)
+		err := collector.findAndQueryMissingPayloads()
+		assert.NoError(t, err)
+	})
+	t.Run("integration", func(t *testing.T) {
+		db, _ := bbolt.Open(path.Join(io.TestDirectory(t), "integration.db"), os.ModePerm, nil)
+		defer db.Close()
+
+		graph := dag.NewBBoltDAG(db)
+
+
+		collector := broadcastingMissingPayloadCollector{
+			graph:        graph,
+			payloadStore: payloadStore,
+			sender:       sender,
+		}
+
+	})
 }
