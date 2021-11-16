@@ -75,8 +75,16 @@ type HTTPConfig struct {
 	// Address holds the interface address the HTTP service must be bound to, in the format of `interface:port` (e.g. localhost:5555).
 	Address string `koanf:"address"`
 	// CORS holds the configuration for Cross Origin Resource Sharing.
-	CORS HTTPCORSConfig `koanf:"cors"`
+	CORS           HTTPCORSConfig `koanf:"cors"`
+	Authentication AuthType `koanf:"auth"`
 }
+
+type AuthType string
+
+const (
+	NoAuthAuthType AuthType = "no"
+	TokenAuthType  AuthType = "token"
+)
 
 // HTTPCORSConfig contains configuration for Cross Origin Resource Sharing.
 type HTTPCORSConfig struct {

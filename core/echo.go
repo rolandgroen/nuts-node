@@ -41,25 +41,27 @@ type EchoRouter interface {
 	Add(method, path string, handler echo.HandlerFunc, middleware ...echo.MiddlewareFunc) *echo.Route
 }
 
-const defaultEchoGroup = ""
+const DefaultEchoGroup = ""
 
 // NewMultiEcho creates a new MultiEcho which uses the given function to create EchoServers. If a route is registered
-// for an unknown group is is bound to the given defaultInterface.
-func NewMultiEcho(creatorFn func(cfg HTTPConfig) (EchoServer, error), defaultInterface HTTPConfig) *MultiEcho {
-	instance := &MultiEcho{
-		interfaces: map[string]EchoServer{},
-		groups:     map[string]string{},
-		creatorFn:  creatorFn,
+// for an unknown group is bound to the given defaultInterface.
+func NewMultiEcho(creatorFn func(cfg HTTPConfig) (EchoServer, error), authenticatorProvider func(AuthType) (HTTPAuthenticator, error)) *MultiEcho {
+	return &MultiEcho{
+		interfaces:            map[string]EchoServer{},
+		groups:                map[string]string{},
+		groupMiddleware:       map[string]echo.MiddlewareFunc{},
+		creatorFn:             creatorFn,
+		authenticatorProvider: authenticatorProvider,
 	}
-	_ = instance.Bind(defaultEchoGroup, defaultInterface)
-	return instance
 }
 
 // MultiEcho allows to bind specific URLs to specific HTTP interfaces
 type MultiEcho struct {
-	interfaces map[string]EchoServer
-	groups     map[string]string
-	creatorFn  func(cfg HTTPConfig) (EchoServer, error)
+	interfaces            map[string]EchoServer
+	groupMiddleware       map[string]echo.MiddlewareFunc
+	groups                map[string]string
+	creatorFn             func(cfg HTTPConfig) (EchoServer, error)
+	authenticatorProvider func(AuthType) (HTTPAuthenticator, error)
 }
 
 // Add adds a route to the Echo server.
@@ -70,9 +72,10 @@ func (c *MultiEcho) Add(method, path string, handler echo.HandlerFunc, middlewar
 	if groupAddress != "" {
 		iface = c.interfaces[groupAddress]
 	} else {
-		iface = c.interfaces[c.groups[defaultEchoGroup]]
+		iface = c.interfaces[c.groups[DefaultEchoGroup]]
 	}
-	return iface.Add(method, path, handler, middleware...)
+
+	return iface.Add(method, path, handler, append([]echo.MiddlewareFunc{c.groupMiddleware[group]}, middleware...)...)
 }
 
 // Bind binds the given group (first part of the URL) to the given HTTP interface. Calling Bind for the same group twice
@@ -83,12 +86,23 @@ func (c *MultiEcho) Bind(group string, interfaceConfig HTTPConfig) error {
 		return fmt.Errorf("http bind group already exists: %s", group)
 	}
 	c.groups[group] = interfaceConfig.Address
+
+	// Configure authentication
+	provider, err := c.authenticatorProvider(interfaceConfig.Authentication)
+	if err != nil {
+		return fmt.Errorf("error configuring authentication (group=%s): %w", group, err)
+	}
+	if provider != nil {
+		c.groupMiddleware[group] = provider.authenticator()
+	}
+
+	// Configure interface
 	if _, addressBound := c.interfaces[interfaceConfig.Address]; !addressBound {
-		server, err := c.creatorFn(interfaceConfig)
+		echoServer, err := c.creatorFn(interfaceConfig)
 		if err != nil {
 			return err
 		}
-		c.interfaces[interfaceConfig.Address] = server
+		c.interfaces[interfaceConfig.Address] = echoServer
 	}
 	return nil
 }

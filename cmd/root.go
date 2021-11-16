@@ -23,6 +23,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"path"
 
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
@@ -119,7 +120,11 @@ func startServer(system *core.System) error {
 	// init HTTP interfaces and routes
 	echoServer := core.NewMultiEcho(func(cfg core.HTTPConfig) (core.EchoServer, error) {
 		return system.EchoCreator(cfg, system.Config.Strictmode)
-	}, system.Config.HTTP.HTTPConfig)
+	}, core.HTTPAuthenticatorProvider(path.Join(system.Config.Datadir, "http-token-privatekey.json")))
+	err := echoServer.Bind(core.DefaultEchoGroup, system.Config.HTTP.HTTPConfig)
+	if err != nil {
+		return err
+	}
 	for httpGroup, httpConfig := range system.Config.HTTP.AltBinds {
 		logrus.Infof("Binding /%s -> %s", httpGroup, httpConfig.Address)
 		if err := echoServer.Bind(httpGroup, httpConfig); err != nil {
