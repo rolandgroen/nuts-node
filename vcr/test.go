@@ -48,7 +48,7 @@ func NewTestVCRInstance(t *testing.T) *vcr {
 		nil,
 		nil,
 		nil,
-		network.NewTestNetworkInstance(path.Join(testDirectory, "network")),
+		network.NewTestNetworkInstance(t, path.Join(testDirectory, "network")),
 	).(*vcr)
 
 	if err := newInstance.Configure(core.ServerConfig{Datadir: testDirectory}); err != nil {

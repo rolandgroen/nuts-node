@@ -22,9 +22,6 @@ package dag
 import (
 	"context"
 	"fmt"
-	"os"
-	"path"
-	"path/filepath"
 	"time"
 
 	"github.com/nuts-foundation/nuts-node/core"
@@ -52,17 +49,7 @@ type state struct {
 }
 
 // NewState returns a new State. The State is used as entry point, it's methods will start transactions and will notify observers from within those transactions.
-func NewState(dataDir string, verifiers ...Verifier) (State, error) {
-	dbFile := path.Join(dataDir, "network", "data.db")
-	if err := os.MkdirAll(filepath.Dir(dbFile), os.ModePerm); err != nil {
-		return nil, fmt.Errorf("unable to create BBolt database: %w", err)
-	}
-
-	var bboltErr error
-	db, bboltErr := bbolt.Open(dbFile, boltDBFileMode, bbolt.DefaultOptions)
-	if bboltErr != nil {
-		return nil, fmt.Errorf("unable to create BBolt database: %w", bboltErr)
-	}
+func NewState(db *bbolt.DB, verifiers ...Verifier) (State, error) {
 
 	graph := newBBoltDAG(db)
 
@@ -168,14 +155,6 @@ func (s *state) Subscribe(eventType EventType, payloadType string, receiver Rece
 }
 
 func (s *state) Shutdown() error {
-	// Close BBolt database
-	if s.db != nil {
-		err := s.db.Close()
-		if err != nil {
-			return err
-		}
-	}
-
 	return nil
 }
 

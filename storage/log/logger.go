@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2021 Nuts community
+ * Copyright (C) 2022 Nuts community
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -16,21 +16,15 @@
  *
  */
 
-package vdr
+package log
 
 import (
-	"github.com/nuts-foundation/go-did/did"
+	"github.com/sirupsen/logrus"
 )
 
-// Two TestDIDs which can be used during testing:
-// TestDIDA is a testDID
-var TestDIDA, _ = did.ParseDID("did:nuts:GvkzxsezHvEc8nGhgz6Xo3jbqkHwswLmWw3CYtCm7hAW")
+var _logger = logrus.StandardLogger().WithField("module", "Storage")
 
-// TestDIDB is a testDID
-var TestDIDB, _ = did.ParseDID("did:nuts:B8PUHs2AUHbFF1xLLK4eZjgErEcMXHxs68FteY7NDtCY")
-
-// TestMethodDIDA is a test method DID for the TestDIDA
-var TestMethodDIDA, _ = did.ParseDIDURL(TestDIDA.String() + "#abc-method-1")
-
-// TestMethodDIDB is a test method DID for the TestDIDB
-var TestMethodDIDB, _ = did.ParseDIDURL(TestDIDB.String() + "#abc-method-2")
+// Logger returns the logger for the network engine.
+func Logger() *logrus.Entry {
+	return _logger
+}

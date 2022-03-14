@@ -23,6 +23,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/nuts-foundation/nuts-node/storage"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"go.uber.org/atomic"
@@ -179,6 +180,7 @@ func CreateSystem() *core.System {
 	system := core.NewSystem()
 
 	// Create instances
+	warehouse := storage.New()
 	cryptoInstance := crypto.NewCryptoInstance()
 	memoryStore := store.NewMemoryStore()
 	keyResolver := doc.KeyResolver{Store: memoryStore}
@@ -209,6 +211,7 @@ func CreateSystem() *core.System {
 	system.RegisterRoutes(&credAPIv2.Wrapper{VCR: credentialInstance})
 	system.RegisterRoutes(statusEngine.(core.Routable))
 	system.RegisterRoutes(metricsEngine.(core.Routable))
+	system.RegisterRoutes(warehouse.(core.Routable))
 	system.RegisterRoutes(&authAPI.Wrapper{Auth: authInstance})
 	system.RegisterRoutes(&authIrmaAPI.Wrapper{Auth: authInstance})
 	system.RegisterRoutes(&didmanAPI.Wrapper{Didman: didmanInstance})
@@ -217,6 +220,7 @@ func CreateSystem() *core.System {
 	system.RegisterEngine(eventManager)
 	system.RegisterEngine(statusEngine)
 	system.RegisterEngine(metricsEngine)
+	system.RegisterEngine(warehouse)
 	system.RegisterEngine(cryptoInstance)
 	// the order of the next 3 modules is fixed due to configure and start dependencies
 	system.RegisterEngine(credentialInstance)

@@ -21,13 +21,15 @@ package network
 import (
 	"github.com/nuts-foundation/nuts-node/core"
 	"github.com/nuts-foundation/nuts-node/crypto"
+	"github.com/nuts-foundation/nuts-node/storage"
 	"github.com/nuts-foundation/nuts-node/vdr/doc"
 	"github.com/nuts-foundation/nuts-node/vdr/store"
 	"github.com/sirupsen/logrus"
+	"testing"
 )
 
 // NewTestNetworkInstance creates a new Transactions instance that writes it data to a test directory.
-func NewTestNetworkInstance(testDirectory string) *Network {
+func NewTestNetworkInstance(t *testing.T, testDirectory string) *Network {
 	// speedup tests by disabling file sync
 	defaultBBoltOptions.NoSync = true
 	config := TestNetworkConfig()
@@ -40,6 +42,7 @@ func NewTestNetworkInstance(testDirectory string) *Network {
 		cryptoInstance,
 		doc.Resolver{Store: vdrStore},
 		doc.Finder{Store: vdrStore},
+		storage.NewTestWarehouse(t, testDirectory),
 	)
 	if err := newInstance.Configure(core.ServerConfig{Datadir: testDirectory}); err != nil {
 		logrus.Fatal(err)

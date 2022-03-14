@@ -24,6 +24,7 @@ import (
 	"crypto/elliptic"
 	"crypto/rand"
 	"errors"
+	"github.com/nuts-foundation/nuts-node/storage"
 	"testing"
 	"time"
 
@@ -720,7 +721,7 @@ func Test_connectToKnownNodes(t *testing.T) {
 				defer ctrl.Finish()
 
 				// Use actual test instance because the unit test's createNetwork mocks too much for us
-				network := NewTestNetworkInstance(io.TestDirectory(t))
+				network := NewTestNetworkInstance(t, io.TestDirectory(t))
 				docFinder := vdrTypes.NewMockDocFinder(ctrl)
 				network.didDocumentFinder = docFinder
 				network.config.EnableDiscovery = true
@@ -746,7 +747,7 @@ func Test_connectToKnownNodes(t *testing.T) {
 		defer ctrl.Finish()
 
 		// Use actual test instance because the unit test's createNetwork mocks too much for us
-		network := NewTestNetworkInstance(io.TestDirectory(t))
+		network := NewTestNetworkInstance(t, io.TestDirectory(t))
 		docFinder := vdrTypes.NewMockDocFinder(ctrl)
 		network.didDocumentFinder = docFinder
 		network.config.EnableDiscovery = true
@@ -859,7 +860,7 @@ func createNetwork(ctrl *gomock.Controller, cfgFn ...func(config *Config)) *netw
 	docFinder := vdrTypes.NewMockDocFinder(ctrl)
 	// required when starting the network, it searches for nodes to connect to
 	docFinder.EXPECT().Find(gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes().Return([]did.Document{}, nil)
-	network := NewNetworkInstance(networkConfig, keyResolver, keyStore, decrypter, docResolver, docFinder)
+	network := NewNetworkInstance(networkConfig, keyResolver, keyStore, decrypter, docResolver, docFinder, storage.NewTestWarehouse(t, testD))
 	network.state = state
 	network.connectionManager = connectionManager
 	network.protocols = []transport.Protocol{prot}

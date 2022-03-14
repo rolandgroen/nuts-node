@@ -23,6 +23,7 @@ import (
 	"crypto/tls"
 	"errors"
 	"fmt"
+	"github.com/nuts-foundation/nuts-node/storage"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -71,6 +72,7 @@ type Network struct {
 	decrypter              crypto.Decrypter
 	nodeDIDResolver        transport.NodeDIDResolver
 	didDocumentFinder      types.DocFinder
+	warehouse              storage.Warehouse
 }
 
 // Walk walks the DAG starting at the root, passing every transaction to `visitor`.
@@ -87,6 +89,7 @@ func NewNetworkInstance(
 	decrypter crypto.Decrypter,
 	didDocumentResolver types.DocResolver,
 	didDocumentFinder types.DocFinder,
+	warehouse storage.Warehouse,
 ) *Network {
 	return &Network{
 		config:                 config,
@@ -95,6 +98,7 @@ func NewNetworkInstance(
 		privateKeyResolver:     privateKeyResolver,
 		didDocumentResolver:    didDocumentResolver,
 		didDocumentFinder:      didDocumentFinder,
+		warehouse:              warehouse,
 		lastTransactionTracker: lastTransactionTracker{headRefs: make(map[hash.SHA256Hash]bool), processedTransactions: map[hash.SHA256Hash]bool{}},
 		nodeDIDResolver:        &transport.FixedNodeDIDResolver{},
 	}
@@ -102,8 +106,12 @@ func NewNetworkInstance(
 
 // Configure configures the Network subsystem
 func (n *Network) Configure(config core.ServerConfig) error {
-	var err error
-	if n.state, err = dag.NewState(config.Datadir, dag.NewSigningTimeVerifier(), dag.NewPrevTransactionsVerifier(), dag.NewTransactionSignatureVerifier(n.keyResolver)); err != nil {
+	stateDB, err := n.warehouse.GetKVStore(n, "data")
+	if err != nil {
+		return err
+	}
+
+	if n.state, err = dag.NewState(stateDB, dag.NewSigningTimeVerifier(), dag.NewPrevTransactionsVerifier(), dag.NewTransactionSignatureVerifier(n.keyResolver)); err != nil {
 		return fmt.Errorf("failed to configure state: %w", err)
 	}
 
