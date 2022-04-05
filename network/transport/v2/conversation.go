@@ -113,14 +113,14 @@ func (cMan *conversationManager) done(cid conversationID) {
 }
 
 // startConversation sets a conversationID on the envelope and stores the conversation
-func (cMan *conversationManager) startConversation(envelope checkable) *conversation {
+func (cMan *conversationManager) startConversation(msg checkable) *conversation {
 	cid := newConversationID()
 
-	envelope.setConversationID(cid)
+	msg.setConversationID(cid)
 	newConversation := &conversation{
 		conversationID:   cid,
 		createdAt:        time.Now(),
-		conversationData: envelope,
+		conversationData: msg,
 		additionalInfo:   map[string]interface{}{},
 	}
 
@@ -157,6 +157,19 @@ func (envelope *Envelope_TransactionListQuery) setConversationID(cid conversatio
 
 func (envelope *Envelope_TransactionListQuery) conversationID() []byte {
 	return envelope.TransactionListQuery.ConversationID
+}
+
+func (envelope *Envelope_TransactionRangeQuery) setConversationID(cid conversationID) {
+	envelope.TransactionRangeQuery.ConversationID = cid.slice()
+}
+
+func (envelope *Envelope_TransactionRangeQuery) conversationID() []byte {
+	return envelope.TransactionRangeQuery.ConversationID
+}
+
+func (envelope *Envelope_TransactionRangeQuery) checkResponse(other isEnvelope_Message) error {
+	// TODO: Not sure what to do here
+	return nil
 }
 
 func (envelope *Envelope_TransactionListQuery) checkResponse(other isEnvelope_Message) error {
