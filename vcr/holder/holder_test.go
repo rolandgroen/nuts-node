@@ -80,7 +80,7 @@ func TestHolder_BuildVP(t *testing.T) {
 		keyResolver.EXPECT().ResolveAssertionKeyID(*vdr.TestDIDA).Return(ssi.MustParseURI(kid), nil)
 		keyStore.EXPECT().Resolve(vdr.TestMethodDIDA.URI().String()).Return(key, nil)
 
-		contextLoader, _ := signature.NewContextLoader(false)
+		contextLoader, _ := signature.NewContextLoader(false, signature.DefaultJsonLdContextConfig())
 		holder := New(keyResolver, keyStore, nil, contextLoader)
 
 		options := proof.ProofOptions{}
@@ -99,7 +99,7 @@ func TestHolder_BuildVP(t *testing.T) {
 		keyResolver.EXPECT().ResolveAssertionKeyID(*vdr.TestDIDA).Return(vdr.TestMethodDIDA.URI(), nil)
 		keyStore.EXPECT().Resolve(vdr.TestMethodDIDA.URI().String()).Return(key, nil)
 
-		contextLoader, _ := signature.NewContextLoader(false)
+		contextLoader, _ := signature.NewContextLoader(false, signature.DefaultJsonLdContextConfig())
 		holder := New(keyResolver, keyStore, nil, contextLoader)
 
 		options := proof.ProofOptions{}
@@ -123,7 +123,7 @@ func TestHolder_BuildVP(t *testing.T) {
 			keyResolver.EXPECT().ResolveAssertionKeyID(*vdr.TestDIDA).Return(ssi.MustParseURI(kid), nil)
 			keyStore.EXPECT().Resolve(vdr.TestMethodDIDA.URI().String()).Return(key, nil)
 
-			contextLoader, _ := signature.NewContextLoader(false)
+			contextLoader, _ := signature.NewContextLoader(false, signature.DefaultJsonLdContextConfig())
 			holder := New(keyResolver, keyStore, mockVerifier, contextLoader)
 
 			options := proof.ProofOptions{Created: created}
@@ -146,7 +146,7 @@ func TestHolder_BuildVP(t *testing.T) {
 			keyResolver.EXPECT().ResolveAssertionKeyID(*vdr.TestDIDA).Return(ssi.MustParseURI(kid), nil)
 			keyStore.EXPECT().Resolve(vdr.TestMethodDIDA.URI().String()).Return(key, nil)
 
-			contextLoader, _ := signature.NewContextLoader(false)
+			contextLoader, _ := signature.NewContextLoader(false, signature.DefaultJsonLdContextConfig())
 			holder := New(keyResolver, keyStore, mockVerifier, contextLoader)
 
 			options := proof.ProofOptions{Created: created}
@@ -167,7 +167,7 @@ func TestHolder_BuildVP(t *testing.T) {
 			keyResolver.EXPECT().ResolveAssertionKeyID(*vdr.TestDIDA).Return(ssi.MustParseURI(kid), nil)
 			keyStore.EXPECT().Resolve(vdr.TestMethodDIDA.URI().String()).Return(key, nil)
 
-			contextLoader, _ := signature.NewContextLoader(false)
+			contextLoader, _ := signature.NewContextLoader(false, signature.DefaultJsonLdContextConfig())
 			holder := New(keyResolver, keyStore, nil, contextLoader)
 
 			options := proof.ProofOptions{}
@@ -186,7 +186,7 @@ func TestHolder_BuildVP(t *testing.T) {
 			keyResolver := types.NewMockKeyResolver(ctrl)
 			keyStore := crypto.NewMockKeyStore(ctrl)
 
-			contextLoader, _ := signature.NewContextLoader(false)
+			contextLoader, _ := signature.NewContextLoader(false, signature.DefaultJsonLdContextConfig())
 			holder := New(keyResolver, keyStore, nil, contextLoader)
 
 			options := proof.ProofOptions{}
@@ -205,7 +205,7 @@ func TestHolder_BuildVP(t *testing.T) {
 			keyResolver := types.NewMockKeyResolver(ctrl)
 			keyStore := crypto.NewMockKeyStore(ctrl)
 
-			contextLoader, _ := signature.NewContextLoader(false)
+			contextLoader, _ := signature.NewContextLoader(false, signature.DefaultJsonLdContextConfig())
 			holder := New(keyResolver, keyStore, nil, contextLoader)
 
 			options := proof.ProofOptions{}

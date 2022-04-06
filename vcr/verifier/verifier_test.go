@@ -734,7 +734,7 @@ func newMockContext(t *testing.T) mockContext {
 	t.Helper()
 	ctrl := gomock.NewController(t)
 	keyResolver := vdrTypes.NewMockKeyResolver(ctrl)
-	contextLoader, err := signature.NewContextLoader(false)
+	contextLoader, err := signature.NewContextLoader(false, signature.DefaultJsonLdContextConfig())
 	verifierStore := NewMockStore(ctrl)
 	assert.NoError(t, err)
 	trustConfig := trust.NewConfig(path.Join(io.TestDirectory(t), "trust.yaml"))
