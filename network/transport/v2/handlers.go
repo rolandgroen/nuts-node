@@ -22,6 +22,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/nuts-foundation/nuts-node/network/dag/tree"
 	"math"
 	"sort"
 
@@ -58,6 +59,12 @@ func (p protocol) Handle(peer transport.Peer, raw interface{}) error {
 	case *Envelope_TransactionPayload:
 		logMessage(msg)
 		return p.handleTransactionPayload(msg.TransactionPayload)
+	case *Envelope_State:
+		logMessage(msg)
+		return p.handleState(peer, msg.State)
+	case *Envelope_TransactionSet:
+		logMessage(msg)
+		return p.handleTransactionSet(peer, msg)
 	}
 
 	return errors.New("envelope doesn't contain any (handleable) messages")
@@ -169,8 +176,11 @@ func (p *protocol) handleGossip(peer transport.Peer, msg *Gossip) error {
 		return nil
 	}
 
-	// TODO send state message
+	// TODO: send state message
+	// TODO: what xor to use? actual xor, or assume we will get refs with TransactionListQuery and already include these in the xor?
+	// TODO: what clock to use? if initiated from Gossip we might as well request the entire dag -> clock := math.MaxUint32
 	log.Logger().Infof("xor is different from peer=%s", peer.ID)
+	return p.sendState(peer.ID, xor, math.MaxUint32)
 
 	return nil
 }
@@ -178,7 +188,6 @@ func (p *protocol) handleGossip(peer transport.Peer, msg *Gossip) error {
 func (p *protocol) handleTransactionList(peer transport.Peer, envelope *Envelope_TransactionList) error {
 	msg := envelope.TransactionList
 	cid := conversationID(msg.ConversationID)
-	conversation := p.cMan.conversations[cid.String()]
 
 	// TODO convert to trace logging
 	log.Logger().Infof("handling handleTransactionList from peer (peer=%s, conversationID=%s)", peer.ID.String(), cid.String())
@@ -187,6 +196,7 @@ func (p *protocol) handleTransactionList(peer transport.Peer, envelope *Envelope
 	if err := p.cMan.check(envelope); err != nil {
 		return err
 	}
+	conversation := p.cMan.conversations[cid.String()]
 
 	refsToBeRemoved := map[string]bool{}
 	ctx := context.Background()
@@ -296,4 +306,75 @@ func (p *protocol) handleTransactionListQuery(peer transport.Peer, msg *Transact
 	}
 
 	return p.sendTransactionList(peer.ID, cid, transactions)
+}
+
+func (p *protocol) handleState(peer transport.Peer, msg *State) error {
+	cid := conversationID(msg.ConversationID)
+
+	// TODO convert to trace logging
+	log.Logger().Infof("handling State from peer (peer=%s, conversationID=%s)", peer.ID.String(), cid.String())
+
+	ctx := context.Background()
+	xor, _ := p.state.XOR(ctx, math.MaxUint32)
+
+	// nothing to do if peers are now synced
+	if xor.Equals(hash.FromSlice(msg.XOR)) {
+		return nil
+	}
+
+	iblt, lc := p.state.IBLT(ctx, msg.LC)
+
+	return p.sendTransactionSet(peer.ID, cid, msg.LC, lc, iblt)
+}
+
+func (p *protocol) handleTransactionSet(peer transport.Peer, envelope *Envelope_TransactionSet) error {
+	msg := envelope.TransactionSet
+	cid := conversationID(msg.ConversationID)
+
+	// TODO convert to trace logging
+	log.Logger().Infof("handling TransactionSet from peer (peer=%s, conversationID=%s)", peer.ID.String(), cid.String())
+
+	// check if response matches earlier request
+	if err := p.cMan.check(envelope); err != nil {
+		return err
+	}
+
+	// mark state request as done
+	p.cMan.done(cid)
+
+	// get iblt difference
+	ibltPeer := tree.NewIblt(dag.IbltNumBuckets)
+	err := ibltPeer.UnmarshalBinary(msg.IBLT)
+	if err != nil {
+		return err
+	}
+	iblt, clock := p.state.IBLT(context.Background(), msg.LC)
+	err = iblt.Subtract(ibltPeer)
+	if err != nil {
+		return err
+	}
+
+	// request next page if iblt is empty
+	if iblt.IsEmpty() {
+		// TODO: send TransactionRangeQuery
+	}
+
+	// Decode iblt
+	_, missing, err := iblt.Decode()
+	if err != nil {
+		if errors.Is(err, tree.ErrDecodeNotPossible) {
+			// TODO: send new state message, request a lower page
+			_ = clock
+		} else {
+			return err
+		}
+	}
+
+	// request all missing transactions
+	if len(missing) > 0 {
+		return p.sendTransactionListQuery(peer.ID, missing)
+	}
+
+	// peer is behind
+	return nil
 }

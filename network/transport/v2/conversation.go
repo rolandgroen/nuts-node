@@ -194,3 +194,23 @@ func (envelope *Envelope_TransactionList) setConversationID(cid conversationID) 
 func (envelope *Envelope_TransactionList) conversationID() []byte {
 	return envelope.TransactionList.ConversationID
 }
+
+func (envelope *Envelope_State) checkResponse(other isEnvelope_Message) error {
+	panic("implement me")
+}
+
+func (envelope *Envelope_State) setConversationID(cid conversationID) {
+	envelope.State.ConversationID = cid.slice()
+}
+
+func (envelope *Envelope_State) conversationID() []byte {
+	return envelope.State.ConversationID
+}
+
+func (envelope *Envelope_TransactionSet) setConversationID(cid conversationID) {
+	envelope.TransactionSet.ConversationID = cid.slice()
+}
+
+func (envelope *Envelope_TransactionSet) conversationID() []byte {
+	return envelope.TransactionSet.ConversationID
+}

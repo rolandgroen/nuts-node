@@ -21,6 +21,7 @@ package v2
 
 import (
 	"context"
+	"github.com/nuts-foundation/nuts-node/network/dag/tree"
 	"math"
 
 	"github.com/nuts-foundation/nuts-node/crypto/hash"
@@ -133,4 +134,43 @@ func chunkTransactionList(transactions []*Transaction) [][]*Transaction {
 	}
 
 	return chunked
+}
+
+func (p *protocol) sendState(id transport.PeerID, xor hash.SHA256Hash, clock uint32) error {
+	conn := p.connectionList.Get(grpc.ByConnected(), grpc.ByPeerID(id))
+	if conn == nil {
+		return grpc.ErrNoConnection
+	}
+
+	envelope := &Envelope_State{
+		State: &State{
+			XOR: xor.Slice(),
+			LC:  clock,
+		},
+	}
+	conversation := p.cMan.startConversation(envelope)
+
+	// todo convert to trace logging
+	log.Logger().Infof("requesting state from peer (peer=%s, conversationID=%s)", id, conversation.conversationID.String())
+
+	return conn.Send(p, &Envelope{Message: envelope})
+}
+
+func (p *protocol) sendTransactionSet(id transport.PeerID, conversationID conversationID, LCReq uint32, LC uint32, iblt tree.Iblt) error {
+	conn := p.connectionList.Get(grpc.ByConnected(), grpc.ByPeerID(id))
+	if conn == nil {
+		return grpc.ErrNoConnection
+	}
+
+	ibltBytes, err := iblt.MarshalBinary()
+	if err != nil {
+		return err
+	}
+
+	return conn.Send(p, &Envelope_TransactionSet{TransactionSet: &TransactionSet{
+		ConversationID: conversationID.slice(),
+		LCReq:          LCReq,
+		LC:             LC,
+		IBLT:           ibltBytes, // TODO: format of IBLT needs to be specced
+	}})
 }
