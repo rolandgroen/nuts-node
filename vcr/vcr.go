@@ -137,7 +137,10 @@ func (c *vcr) Configure(config core.ServerConfig) error {
 
 	// Create the JSON-LD Context loader
 	allowExternalCalls := !config.Strictmode
-	contextLoader, err := signature.NewContextLoader(allowExternalCalls)
+	contextLoader, err := signature.NewContextLoader(allowExternalCalls, c.config.JsonLdContexts)
+	if err != nil {
+		return err
+	}
 
 	publisher := issuer.NewNetworkPublisher(c.network, c.docResolver, c.keyStore)
 	c.issuer = issuer.NewIssuer(c.issuerStore, publisher, c.docResolver, c.keyStore, contextLoader, c.trustConfig)
