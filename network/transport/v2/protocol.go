@@ -22,6 +22,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"math"
 	"os"
 	"path"
 	"path/filepath"
@@ -99,6 +100,8 @@ type protocol struct {
 	connectionManager transport.ConnectionManager
 	cMan              *conversationManager
 	gManager          gossip.Manager
+	xor               hash.SHA256Hash
+	clock             uint32
 }
 
 func (p protocol) CreateClientStream(outgoingContext context.Context, grpcConn grpcLib.ClientConnInterface) (grpcLib.ClientStream, error) {
@@ -199,8 +202,9 @@ func (p *protocol) connectionStateCallback(peer transport.Peer, state transport.
 }
 
 // gossipTransaction is called when a transaction is added to the DAG
-func (p *protocol) gossipTransaction(_ context.Context, tx dag.Transaction, _ []byte) {
+func (p *protocol) gossipTransaction(ctx context.Context, tx dag.Transaction, _ []byte) {
 	if tx != nil { // can happen when payload is written for private TX
+		p.xor, p.clock = p.state.XOR(ctx, math.MaxUint32)
 		p.gManager.TransactionRegistered(tx.Ref())
 	}
 }

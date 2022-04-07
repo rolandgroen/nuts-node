@@ -20,11 +20,8 @@
 package v2
 
 import (
-	"context"
-	"github.com/nuts-foundation/nuts-node/network/dag/tree"
-	"math"
-
 	"github.com/nuts-foundation/nuts-node/crypto/hash"
+	"github.com/nuts-foundation/nuts-node/network/dag/tree"
 	"github.com/nuts-foundation/nuts-node/network/log"
 	"github.com/nuts-foundation/nuts-node/network/transport"
 	"github.com/nuts-foundation/nuts-node/network/transport/grpc"
@@ -42,12 +39,12 @@ func (p *protocol) sendGossipMsg(id transport.PeerID, refs []hash.SHA256Hash) er
 		refsAsBytes[i] = ref.Slice()
 	}
 
-	xor, clock := p.state.XOR(context.Background(), math.MaxUint32)
+	log.Logger().Infof("GOSSIP: LC=%d, xor=%s, xor refs=%s, refs=%v", p.clock, p.xor, hash.EmptyHash().Xor(refs...), refs)
 
 	return conn.Send(p, &Envelope{Message: &Envelope_Gossip{
 		Gossip: &Gossip{
-			XOR:          xor.Slice(),
-			LC:           clock,
+			XOR:          p.xor.Slice(),
+			LC:           p.clock,
 			Transactions: refsAsBytes,
 		},
 	}})
@@ -167,10 +164,10 @@ func (p *protocol) sendTransactionSet(id transport.PeerID, conversationID conver
 		return err
 	}
 
-	return conn.Send(p, &Envelope_TransactionSet{TransactionSet: &TransactionSet{
+	return conn.Send(p, &Envelope{Message: &Envelope_TransactionSet{TransactionSet: &TransactionSet{
 		ConversationID: conversationID.slice(),
 		LCReq:          LCReq,
 		LC:             LC,
 		IBLT:           ibltBytes, // TODO: format of IBLT needs to be specced
-	}})
+	}}})
 }

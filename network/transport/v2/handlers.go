@@ -170,9 +170,12 @@ func (p *protocol) handleGossip(peer transport.Peer, msg *Gossip) error {
 	}
 	p.gManager.GossipReceived(peer.ID, refs...)
 
-	xor, _ := p.state.XOR(ctx, math.MaxUint32)
-	xor = xor.Xor(refs...)
-	if xor.Equals(hash.FromSlice(msg.GetXOR())) {
+	xor2 := p.xor.Xor(refs...)
+	if xor2.Equals(hash.FromSlice(msg.XOR)) {
+		return nil
+	}
+
+	if p.clock >= msg.LC {
 		return nil
 	}
 
@@ -180,9 +183,8 @@ func (p *protocol) handleGossip(peer transport.Peer, msg *Gossip) error {
 	// TODO: what xor to use? actual xor, or assume we will get refs with TransactionListQuery and already include these in the xor?
 	// TODO: what clock to use? if initiated from Gossip we might as well request the entire dag -> clock := math.MaxUint32
 	log.Logger().Infof("xor is different from peer=%s", peer.ID)
-	return p.sendState(peer.ID, xor, math.MaxUint32)
-
-	return nil
+	log.Logger().Infof("our xor=%s xor2=%s, peer xor=%s, missing tx=%v", p.xor, xor2, hash.FromSlice(msg.XOR), refs)
+	return p.sendState(peer.ID, xor2, math.MaxUint32)
 }
 
 func (p *protocol) handleTransactionList(peer transport.Peer, envelope *Envelope_TransactionList) error {
@@ -354,7 +356,7 @@ func (p *protocol) handleTransactionSet(peer transport.Peer, envelope *Envelope_
 		return err
 	}
 
-	// request next page if iblt is empty
+	// request next page if there is no difference
 	if iblt.IsEmpty() {
 		// TODO: send TransactionRangeQuery
 	}

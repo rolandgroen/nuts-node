@@ -196,7 +196,8 @@ func (envelope *Envelope_TransactionList) conversationID() []byte {
 }
 
 func (envelope *Envelope_State) checkResponse(other isEnvelope_Message) error {
-	panic("implement me")
+	//TODO panic("implement me")
+	return nil
 }
 
 func (envelope *Envelope_State) setConversationID(cid conversationID) {
