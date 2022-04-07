@@ -49,7 +49,7 @@ func Test_issuer_buildVC(t *testing.T) {
 
 		keyResolverMock := NewMockkeyResolver(ctrl)
 		keyResolverMock.EXPECT().ResolveAssertionKey(gomock.Any()).Return(crypto.NewTestKey(kid), nil)
-		contextLoader, _ := signature.NewContextLoader(false, signature.JsonLdContexts{})
+		contextLoader, _ := signature.NewContextLoader(false, signature.JsonLdContextsConfig{})
 		sut := issuer{keyResolver: keyResolverMock, contextLoader: contextLoader}
 		schemaOrgContext := ssi.MustParseURI("https://schema.org")
 
@@ -141,7 +141,7 @@ func Test_issuer_Issue(t *testing.T) {
 		}},
 	}
 
-	contextLoader, _ := signature.NewContextLoader(false, signature.JsonLdContexts{})
+	contextLoader, _ := signature.NewContextLoader(false, signature.JsonLdContextsConfig{})
 
 	t.Run("ok - unpublished", func(t *testing.T) {
 		ctrl := gomock.NewController(t)
