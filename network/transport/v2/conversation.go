@@ -196,7 +196,15 @@ func (envelope *Envelope_TransactionList) conversationID() []byte {
 }
 
 func (envelope *Envelope_State) checkResponse(other isEnvelope_Message) error {
-	//TODO panic("implement me")
+	// envelope type already checked in cMan.check()
+	otherEnvelope, ok := other.(*Envelope_TransactionSet)
+	if !ok {
+		return errors.New("checking wrong envelope type")
+	}
+
+	if envelope.State.LC != otherEnvelope.TransactionSet.LCReq {
+		return fmt.Errorf("response contains LCReq=%d, requested LC=%d", otherEnvelope.TransactionSet.LCReq, envelope.State.LC)
+	}
 	return nil
 }
 

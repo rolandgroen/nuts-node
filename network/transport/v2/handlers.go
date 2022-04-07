@@ -323,7 +323,8 @@ func (p *protocol) handleTransactionSet(peer transport.Peer, envelope *Envelope_
 	if err != nil {
 		return err
 	}
-	iblt, clock := p.state.IBLT(context.Background(), msg.LC)
+	ctx := context.Background()
+	iblt, _ := p.state.IBLT(ctx, msg.LC)
 	err = iblt.Subtract(ibltPeer)
 	if err != nil {
 		return err
@@ -339,7 +340,8 @@ func (p *protocol) handleTransactionSet(peer transport.Peer, envelope *Envelope_
 	if err != nil {
 		if errors.Is(err, tree.ErrDecodeNotPossible) {
 			// TODO: send new state message, request a lower page
-			_ = clock
+			xor, previousPageLimit := p.state.XOR(ctx, msg.LC-dag.PageSize)
+			return p.sendState(peer.ID, xor, previousPageLimit)
 		} else {
 			return err
 		}
