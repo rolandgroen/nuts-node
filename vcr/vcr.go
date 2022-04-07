@@ -31,6 +31,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/nuts-foundation/go-leia/v3"
 	"github.com/nuts-foundation/nuts-node/vcr/holder"
 
 	"github.com/lestrrat-go/jwx/jwa"
@@ -40,7 +41,6 @@ import (
 	ssi "github.com/nuts-foundation/go-did"
 	"github.com/nuts-foundation/go-did/did"
 	"github.com/nuts-foundation/go-did/vc"
-	"github.com/nuts-foundation/go-leia/v2"
 	"github.com/nuts-foundation/nuts-node/core"
 	"github.com/nuts-foundation/nuts-node/crypto"
 	"github.com/nuts-foundation/nuts-node/crypto/hash"

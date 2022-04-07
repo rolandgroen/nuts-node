@@ -20,7 +20,11 @@
 package v2
 
 import (
+	"context"
+	"sort"
+
 	"github.com/nuts-foundation/nuts-node/crypto/hash"
+	"github.com/nuts-foundation/nuts-node/network/dag"
 	"github.com/nuts-foundation/nuts-node/network/dag/tree"
 	"github.com/nuts-foundation/nuts-node/network/log"
 	"github.com/nuts-foundation/nuts-node/network/transport"
@@ -79,13 +83,43 @@ func (p *protocol) sendTransactionListQuery(id transport.PeerID, refs []hash.SHA
 	return conn.Send(p, &Envelope{Message: envelope})
 }
 
-func (p *protocol) sendTransactionList(id transport.PeerID, conversationID conversationID, transactions []*Transaction) error {
-	conn := p.connectionList.Get(grpc.ByConnected(), grpc.ByPeerID(id))
+// sendTransactionList sorts transactions on LC value and filters private transaction payloads.
+// It sends the resulting list to the peer
+func (p *protocol) sendTransactionList(peer transport.Peer, conversationID conversationID, transactions []dag.Transaction) error {
+	conn := p.connectionList.Get(grpc.ByConnected(), grpc.ByPeerID(peer.ID))
 	if conn == nil {
 		return grpc.ErrNoConnection
 	}
 
-	for _, chunk := range chunkTransactionList(transactions) {
+	// now we sort on LC value
+	sort.Slice(transactions, func(i, j int) bool {
+		return transactions[i].Clock() <= transactions[j].Clock()
+	})
+
+	networkTransactions := make([]*Transaction, len(transactions))
+	for i, transaction := range transactions {
+		networkTX := Transaction{
+			Hash: transaction.Ref().Slice(),
+			Data: transaction.Data(),
+		}
+
+		// do not add private TX payloads
+		if len(transaction.PAL()) == 0 {
+			payload, err := p.state.ReadPayload(context.Background(), transaction.PayloadHash())
+			if err != nil {
+				return err
+			}
+			// TODO we abort here as well, since there's no mechanism for missing payloads on public transactions in v2 protocol
+			if payload == nil {
+				log.Logger().Warnf("peer requested transaction with missing payload (peer=%s, node=%s, ref=%s)", peer.ID, peer.NodeDID.String(), transaction.Ref().String())
+				break
+			}
+			networkTX.Payload = payload
+		}
+		networkTransactions[i] = &networkTX
+	}
+
+	for _, chunk := range chunkTransactionList(networkTransactions) {
 		if err := conn.Send(p, &Envelope{Message: &Envelope_TransactionList{
 			TransactionList: &TransactionList{
 				ConversationID: conversationID.slice(),

@@ -25,6 +25,7 @@ import (
 
 	"github.com/golang/mock/gomock"
 	"github.com/nuts-foundation/nuts-node/crypto/hash"
+	"github.com/nuts-foundation/nuts-node/network/dag"
 	"github.com/nuts-foundation/nuts-node/network/transport"
 	"github.com/nuts-foundation/nuts-node/network/transport/grpc"
 	"github.com/stretchr/testify/assert"
@@ -64,17 +65,19 @@ func TestProtocol_sendGossip(t *testing.T) {
 }
 
 func TestProtocol_sendTransactionList(t *testing.T) {
-	peerID := transport.PeerID("1")
+	peer := transport.Peer{ID: "1"}
 	conversationID := newConversationID()
 	largeTransaction := Transaction{
 		Data: make([]byte, grpc.MaxMessageSizeInBytes/2),
 	}
-	transactions := []*Transaction{&largeTransaction, &largeTransaction}
+	tx0, _, _ := dag.CreateTestTransaction(0)
+	tx1, _, _ := dag.CreateTestTransaction(1, tx0)
+	transactions := []dag.Transaction{tx0, tx1}
 
 	t.Run("ok", func(t *testing.T) {
 		proto, mocks := newTestProtocol(t, nil)
 		mockConnection := grpc.NewMockConnection(mocks.Controller)
-		mocks.ConnectionList.EXPECT().Get(grpc.ByConnected(), grpc.ByPeerID(peerID)).Return(mockConnection)
+		mocks.ConnectionList.EXPECT().Get(grpc.ByConnected(), grpc.ByPeerID(peer.ID)).Return(mockConnection)
 		mockConnection.EXPECT().Send(proto, &Envelope{Message: &Envelope_TransactionList{
 			TransactionList: &TransactionList{
 				ConversationID: conversationID.slice(),
@@ -82,14 +85,14 @@ func TestProtocol_sendTransactionList(t *testing.T) {
 			},
 		}}).Times(2)
 
-		err := proto.sendTransactionList(peerID, conversationID, transactions)
+		err := proto.sendTransactionList(peer, conversationID, transactions)
 
 		assert.NoError(t, err)
 	})
 	t.Run("error - on send", func(t *testing.T) {
 		proto, mocks := newTestProtocol(t, nil)
 		mockConnection := grpc.NewMockConnection(mocks.Controller)
-		mocks.ConnectionList.EXPECT().Get(grpc.ByConnected(), grpc.ByPeerID(peerID)).Return(mockConnection)
+		mocks.ConnectionList.EXPECT().Get(grpc.ByConnected(), grpc.ByPeerID(peer.ID)).Return(mockConnection)
 		mockConnection.EXPECT().Send(proto, &Envelope{Message: &Envelope_TransactionList{
 			TransactionList: &TransactionList{
 				ConversationID: conversationID.slice(),
@@ -97,15 +100,15 @@ func TestProtocol_sendTransactionList(t *testing.T) {
 			},
 		}}).Return(errors.New("custom"))
 
-		err := proto.sendTransactionList(peerID, conversationID, transactions)
+		err := proto.sendTransactionList(peer, conversationID, transactions)
 
 		assert.Error(t, err)
 	})
 	t.Run("error - no connection available", func(t *testing.T) {
 		proto, mocks := newTestProtocol(t, nil)
-		mocks.ConnectionList.EXPECT().Get(grpc.ByConnected(), grpc.ByPeerID(peerID)).Return(nil)
+		mocks.ConnectionList.EXPECT().Get(grpc.ByConnected(), grpc.ByPeerID(peer.ID)).Return(nil)
 
-		err := proto.sendTransactionList(peerID, newConversationID(), []*Transaction{})
+		err := proto.sendTransactionList(peer, newConversationID(), []dag.Transaction{})
 
 		assert.NotNil(t, err)
 	})

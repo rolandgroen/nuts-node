@@ -22,9 +22,9 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/nuts-foundation/nuts-node/network/dag/tree"
 	"math"
-	"sort"
+
+	"github.com/nuts-foundation/nuts-node/network/dag/tree"
 
 	"github.com/nuts-foundation/nuts-node/crypto/hash"
 	"github.com/nuts-foundation/nuts-node/network/dag"
@@ -247,7 +247,6 @@ func (p *protocol) handleTransactionList(peer transport.Peer, envelope *Envelope
 
 func (p *protocol) handleTransactionListQuery(peer transport.Peer, msg *TransactionListQuery) error {
 	requestedRefs := make([]hash.SHA256Hash, len(msg.Refs))
-	transactions := make([]*Transaction, 0)
 	unsorted := make([]dag.Transaction, 0)
 
 	cid := conversationID(msg.ConversationID)
@@ -280,34 +279,8 @@ func (p *protocol) handleTransactionListQuery(peer transport.Peer, msg *Transact
 		}
 	}
 
-	// now we sort on LC value
-	sort.Slice(unsorted, func(i, j int) bool {
-		return unsorted[i].Clock() <= unsorted[j].Clock()
-	})
-
-	for i, transaction := range unsorted {
-		networkTX := Transaction{
-			Hash: msg.Refs[i],
-			Data: transaction.Data(),
-		}
-
-		// do not add private TX payloads
-		if len(transaction.PAL()) == 0 {
-			payload, err := p.state.ReadPayload(ctx, transaction.PayloadHash())
-			if err != nil {
-				return err
-			}
-			// TODO we abort here as well, since there's no mechanism for missing payloads on public transactions in v2 protocol
-			if payload == nil {
-				log.Logger().Warnf("peer requested transaction with missing payload (peer=%s, node=%s, ref=%s)", peer.ID, peer.NodeDID.String(), transaction.Ref().String())
-				break
-			}
-			networkTX.Payload = payload
-		}
-		transactions = append(transactions, &networkTX)
-	}
-
-	return p.sendTransactionList(peer.ID, cid, transactions)
+	// handles sorting and private payloads
+	return p.sendTransactionList(peer, cid, unsorted)
 }
 
 func (p *protocol) handleState(peer transport.Peer, msg *State) error {
