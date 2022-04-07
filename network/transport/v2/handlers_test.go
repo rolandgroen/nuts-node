@@ -251,7 +251,7 @@ func TestProtocol_handleGossip(t *testing.T) {
 		mocks.State.EXPECT().IsPresent(gomock.Any(), hash.EmptyHash()).Return(false, nil)
 		mocks.State.EXPECT().XOR(gomock.Any(), gomock.Any()).Return(xor, clock)
 		mocks.Gossip.EXPECT().GossipReceived(peer.ID, hash.EmptyHash())
-		mocks.ConnectionList.EXPECT().Get(grpc.ByConnected(), grpc.ByPeerID(peer.ID)).Return(mockConnection).Times(2)
+		mocks.ConnectionList.EXPECT().Get(grpc.ByConnected(), grpc.ByPeerID(peer.ID)).Return(mockConnection)
 		mockConnection.EXPECT().Send(gomock.Any(), gomock.Any()).DoAndReturn(func(arg0 interface{}, arg1 interface{}) error {
 			envelope, ok := arg1.(*Envelope)
 			if !assert.True(t, ok) {
